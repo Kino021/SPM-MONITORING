@@ -36,13 +36,24 @@ if uploaded_file is not None:
     # Convert date column to datetime
     df['Date'] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
     
+    # Define roles to exclude
+    exclude_roles = [
+        "SUPERVISOR",
+        "SUPERUSER",
+        "DIALER SPECIALIST",
+        "SUPERVISOR (WITHOUT PREDICTIVE DIALER MONITOR)"
+    ]
+    
+    # Filter out rows with excluded roles in Column E (index 4)
+    df_filtered = df[~df.iloc[:, 4].isin(exclude_roles)]
+    
     # 1. Per Client and Date Summary
     st.subheader("Summary Report Per Client and Date")
     summary_table = pd.DataFrame(columns=[
         'Date', 'CLIENT', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME'
     ])
     
-    grouped = df.groupby([df['Date'].dt.date, df.iloc[:, 6]])  # Column C for date, Column G for client
+    grouped = df_filtered.groupby([df_filtered['Date'].dt.date, df_filtered.iloc[:, 6]])  # Column C for date, Column G for client
     summary_data = []
     for (date, client), group in grouped:
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
@@ -88,7 +99,7 @@ if uploaded_file is not None:
     )
     
     # Calculate number of unique days
-    unique_days = df['Date'].dt.date.nunique()
+    unique_days = df_filtered['Date'].dt.date.nunique()
     
     # 2. Overall Summary
     st.subheader("Overall Summary")
@@ -97,14 +108,14 @@ if uploaded_file is not None:
         'AVG AGENTS/DAY', 'AVG CALLS/DAY', 'AVG ACCOUNTS/DAY', 'AVG TALKTIME/DAY'
     ])
     
-    min_date = df['Date'].min().strftime('%B %d, %Y')
-    max_date = df['Date'].max().strftime('%B %d, %Y')
+    min_date = df_filtered['Date'].min().strftime('%B %d, %Y')
+    max_date = df_filtered['Date'].max().strftime('%B %d, %Y')
     date_range = f"{min_date} - {max_date}"
     
-    total_collectors = df.iloc[:, 4].nunique()  # Column E
-    total_connected = len(df)
-    total_accounts = df.iloc[:, 3].nunique()  # Column D
-    total_talk_time = pd.to_timedelta(df.iloc[:, 8].astype(str)).sum()
+    total_collectors = df_filtered.iloc[:, 4].nunique()  # Column E
+    total_connected = len(df_filtered)
+    total_accounts = df_filtered.iloc[:, 3].nunique()  # Column D
+    total_talk_time = pd.to_timedelta(df_filtered.iloc[:, 8].astype(str)).sum()
     
     total_seconds = int(total_talk_time.total_seconds())
     hours = total_seconds // 3600
@@ -160,7 +171,7 @@ if uploaded_file is not None:
         'AVG AGENTS/DAY', 'AVG CALLS/DAY', 'AVG ACCOUNTS/DAY', 'AVG TALKTIME/DAY'
     ])
     
-    grouped_clients = df.groupby(df.iloc[:, 6])  # Column G for client
+    grouped_clients = df_filtered.groupby(df_filtered.iloc[:, 6])  # Column G for client
     client_summary_data = []
     for client, group in grouped_clients:
         client_min_date = group['Date'].min().strftime('%B %d, %Y')
