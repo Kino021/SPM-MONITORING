@@ -47,6 +47,9 @@ if uploaded_file is not None:
     # Filter out rows with excluded roles in Column E (index 4)
     df_filtered = df[~df.iloc[:, 4].isin(exclude_roles)]
     
+    # Calculate total connected once for all summaries
+    total_connected_all = df_filtered.shape[0]  # Total rows in filtered data, excluding header
+    
     # 1. Per Client and Date Summary
     st.subheader("Summary Report Per Client and Date")
     summary_table = pd.DataFrame(columns=[
@@ -58,7 +61,6 @@ if uploaded_file is not None:
     for (date, client), group in grouped:
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
         unique_collectors = group.iloc[:, 4].nunique()  # Column E
-        total_connected = group.shape[0]  # Use shape[0] to count rows explicitly, excluding header
         total_accounts = group.iloc[:, 3].nunique()  # Column D
         talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))  # Column I
         total_talk_time = talk_times.sum()
@@ -74,7 +76,7 @@ if uploaded_file is not None:
             'CLIENT': client,
             'ENVIRONMENT': environment,
             'COLLECTOR': unique_collectors,
-            'TOTAL CONNECTED': total_connected,
+            'TOTAL CONNECTED': total_connected_all,  # Use total from all filtered data
             'TOTAL ACCOUNT': total_accounts,
             'TOTAL TALK TIME': total_talk_time_str
         })
@@ -113,7 +115,6 @@ if uploaded_file is not None:
     date_range = f"{min_date} - {max_date}"
     
     total_collectors = df_filtered.iloc[:, 4].nunique()  # Column E
-    total_connected = df_filtered.shape[0]  # Use shape[0] to count rows explicitly, excluding header
     total_accounts = df_filtered.iloc[:, 3].nunique()  # Column D
     total_talk_time = pd.to_timedelta(df_filtered.iloc[:, 8].astype(str)).sum()
     
@@ -125,7 +126,7 @@ if uploaded_file is not None:
     
     # Calculate averages
     avg_agents_per_day = summary_table['COLLECTOR'].mean()
-    avg_calls_per_day = summary_table['TOTAL CONNECTED'].mean()
+    avg_calls_per_day = total_connected_all / unique_days  # Use total_connected_all for consistency
     avg_accounts_per_day = summary_table['TOTAL ACCOUNT'].mean()
     avg_talktime_seconds = total_talk_time.total_seconds() / unique_days
     avg_hours = int(avg_talktime_seconds // 3600)
@@ -136,7 +137,7 @@ if uploaded_file is not None:
     overall_summary = pd.DataFrame([{
         'DATE RANGE': date_range,
         'TOTAL COLLECTORS': total_collectors,
-        'TOTAL CONNECTED': total_connected,
+        'TOTAL CONNECTED': total_connected_all,  # Use total from all filtered data
         'TOTAL ACCOUNTS': total_accounts,
         'TOTAL TALK TIME': total_talk_time_str,
         'AVG AGENTS/DAY': avg_agents_per_day,
@@ -181,7 +182,6 @@ if uploaded_file is not None:
         
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
         unique_collectors = group.iloc[:, 4].nunique()  # Column E
-        total_connected = group.shape[0]  # Use shape[0] to count rows explicitly, excluding header
         total_accounts = group.iloc[:, 3].nunique()  # Column D
         talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))  # Column I
         total_talk_time = talk_times.sum()
@@ -195,7 +195,7 @@ if uploaded_file is not None:
         # Calculate averages per client
         client_summary_subset = summary_table[summary_table['CLIENT'] == client]
         avg_agents_per_day = client_summary_subset['COLLECTOR'].mean()
-        avg_calls_per_day = client_summary_subset['TOTAL CONNECTED'].mean()
+        avg_calls_per_day = total_connected_all / unique_days  # Use total_connected_all for consistency
         avg_accounts_per_day = client_summary_subset['TOTAL ACCOUNT'].mean()
         avg_talktime_seconds = total_talk_time.total_seconds() / client_unique_days
         avg_hours = int(avg_talktime_seconds // 3600)
@@ -208,7 +208,7 @@ if uploaded_file is not None:
             'DATE RANGE': client_date_range,
             'ENVIRONMENT': environment,
             'COLLECTOR': unique_collectors,
-            'TOTAL CONNECTED': total_connected,
+            'TOTAL CONNECTED': total_connected_all,  # Use total from all filtered data
             'TOTAL ACCOUNT': total_accounts,
             'TOTAL TALK TIME': total_talk_time_str,
             'AVG AGENTS/DAY': avg_agents_per_day,
