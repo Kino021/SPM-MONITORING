@@ -88,15 +88,15 @@ if uploaded_file is not None:
     with st.container():
         st.subheader("Daily Summary")
         
-        # Convert date column (Column C) to datetime and handle invalid dates
-        date_col = pd.to_datetime(df.iloc[:, 2], errors='coerce')
+        # Convert date column (Column C) to datetime with explicit dd-mm-yyyy format
+        date_col = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y', errors='coerce')
         
         # Debugging: Display unique values in the date column to identify issues
         st.write("Unique values in Date column (Column C):", df.iloc[:, 2].unique())
         
         # Filter out rows where date conversion failed (NaT)
         df = df[~date_col.isna()].copy()
-        df.loc[:, df.columns[2]] = pd.to_datetime(df.iloc[:, 2])  # Ensure it's datetime
+        df.loc[:, df.columns[2]] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
         
         # Group by date
         summary_data = df.groupby(df.iloc[:, 2].dt.date).agg({
@@ -109,7 +109,7 @@ if uploaded_file is not None:
         # Rename columns
         summary_data.columns = ['DATE', 'TOTAL COLLECTOR', 'TOTAL CALL', 'TOTAL ACCOUNT', 'TOTAL TALK TIME']
         
-        # Format date column
+        # Format date column to dd/mm/yyyy for display
         summary_data['DATE'] = summary_data['DATE'].apply(lambda x: x.strftime('%d/%m/%Y'))
         
         # Convert total talk time to proper time format
