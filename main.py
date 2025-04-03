@@ -1,65 +1,121 @@
-import pandas as pd
 import streamlit as st
-from datetime import timedelta
+import pandas as pd
 
-# Set up the page configuration
-st.set_page_config(layout="wide", page_title="SPM MONITORING", page_icon="📊", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="DIALER PRODUCTIVITY PER CRITERIA OF BALANCE", page_icon="📊", initial_sidebar_state="expanded")
 
-# Function to convert HH:MM:SS to seconds
-def time_to_seconds(time_str):
-    try:
-        h, m, s = map(int, time_str.split(':'))
-        return h * 3600 + m * 60 + s
-    except:
-        return 0
+# Apply dark mode
+st.markdown(
+    """
+    <style>
+    .reportview-container {
+        background: #2E2E2E;
+        color: white;
+    }
+    .sidebar .sidebar-content {
+        background: #2E2E2E;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# Function to convert seconds back to HH:MM:SS
-def seconds_to_time(seconds):
-    return str(timedelta(seconds=seconds))
+st.title('DIALER REPORT PER CRITERIA OF BALANCE')
 
-# Data loading function
 @st.cache_data
 def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
     return df
 
-# Streamlit file uploader
-uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx", "xls"])
+# File uploader
+uploaded_file = st.file_uploader("Choose an Excel file", type=['xlsx'])
 
 if uploaded_file is not None:
     # Load the data
     df = load_data(uploaded_file)
-
-    # Ensure the required columns exist
-    required_columns = ["DATE", "CLIENT", "CONTACT NUMBER", "CUSTOMER", "Talk Time Duration"]
-    if not all(col in df.columns for col in required_columns):
-        st.error("The Excel file must contain the following columns: DATE, CLIENT, CONTACT NUMBER, CUSTOMER, Talk Time Duration")
-    else:
-        # Clean the data
-        df["CONTACT NUMBER"] = df["CONTACT NUMBER"].astype(str)
-
-        # Calculate Total Call: Count rows where CONTACT NUMBER is numeric
-        df["Is_Contact"] = df["CONTACT NUMBER"].str.isnumeric()
-
-        # Calculate Total Talk Time: Convert Talk Time Duration to seconds
-        df["Talk Time Seconds"] = df["Talk Time Duration"].apply(time_to_seconds)
-
-        # Group by DATE and CLIENT
-        summary = df.groupby(["DATE", "CLIENT"]).agg(
-            Total_Call=("Is_Contact", "sum"),  # Sum of rows with numeric contact numbers
-            Total_Account=("CUSTOMER", "nunique"),  # Count unique customers
-            Total_Talk_Time_Seconds=("Talk Time Seconds", "sum")  # Sum talk time in seconds
-        ).reset_index()
-
-        # Convert Total Talk Time from seconds back to HH:MM:SS
-        summary["Total Talk Time"] = summary["Total_Talk_Time_Seconds"].apply(seconds_to_time)
-
-        # Drop the temporary seconds column
-        summary = summary.drop(columns=["Total_Talk_Time_Seconds"])
-
-        # Display the summary table
-        st.write("### Summary Table")
-        st.dataframe(summary)
-
+    
+    # Create summary table
+    summary_table = pd.DataFrame(columns=[
+        'Date', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME'
+    ])
+    
+    # Process the data
+    # Convert date column to datetime
+    df['Date'] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
+    
+    # Group by Date and Environment
+    grouped = df.groupby([df['Date'].dt.date, df.iloc[:, 0]])  # Column C for date, Column A for environment
+    
+    # Calculate metrics
+    summary_data = []
+    for (date, env), group in grouped:
+        # Count unique collectors (Column E)
+        unique_collectors = group.iloc[:, 4].nunique()
+        
+        # Total connected (all rows excluding header)
+        total_connected = len(group)
+        
+        # Total unique accounts (Column D - Customer Name)
+        total_accounts = group.iloc[:, 3].nunique()
+        
+        # Convert talk time to timedelta and sum (Column I)
+        talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))
+        total_talk_time = talk_times.sum()
+        
+        # Format total talk time
+        total_seconds = int(total_talk_time.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        
+        summary_data.append({
+            'Date': date,
+            'ENVIRONMENT': env,
+            'COLLECTOR': unique_collectors,
+            'TOTAL CONNECTED': total_connected,
+            'TOTAL ACCOUNT': total_accounts,
+            'TOTAL TALK TIME': total_talk_time_str
+        })
+    
+    # Create summary table
+    summary_table = pd.DataFrame(summary_data)
+    
+    # Display the summary table
+    st.subheader("Summary Report")
+    st.dataframe(
+        summary_table.style.format({
+            'Date': '{:%d-%m-%Y}',
+            'COLLECTOR': '{:,.0f}',
+            'TOTAL CONNECTED': '{:,.0f}',
+            'TOTAL ACCOUNT': '{:,.0f}'
+        }),
+        height=500,
+        use_container_width=True
+    )
+    
+    # Add download button for the summary
+    csv = summary_table.to_csv(index=False)
+    st.download_button(
+        label="Download Summary as CSV",
+        data=csv,
+        file_name="dialer_summary_report.csv",
+        mime="text/csv",
+    )
 else:
-    st.write("Please upload an Excel file to generate the summary table.")
+    st.info("Please upload an Excel file to generate the report.")
+
+# Add some basic styling to the table
+st.markdown(
+    """
+    <style>
+    thead tr th {
+        color: white !important;
+        background-color: #4A4A4A !important;
+    }
+    tbody tr:nth-child(odd) {
+        background-color: #3A3A3A;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
