@@ -26,8 +26,10 @@ def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
     return df
 
-# File uploader
-uploaded_file = st.file_uploader("Choose an Excel file", type=['xlsx'])
+# Move file uploader to the sidebar
+with st.sidebar:
+    st.subheader("Upload File")
+    uploaded_file = st.file_uploader("Choose an Excel file", type=['xlsx'])
 
 if uploaded_file is not None:
     # Load the data
@@ -238,7 +240,7 @@ if uploaded_file is not None:
         mime="text/csv",
     )
 else:
-    st.info("Please upload an Excel file to generate the report.")
+    st.info("Please upload an Excel file using the sidebar to generate the report.")
 
 # Add some basic styling to the table
 st.markdown(
