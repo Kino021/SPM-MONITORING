@@ -33,38 +33,28 @@ if uploaded_file is not None:
     # Load the data
     df = load_data(uploaded_file)
     
-    # Create summary table
+    # Convert date column to datetime
+    df['Date'] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
+    
+    # Per Client and Date Summary
+    st.subheader("Summary Report Per Client and Date")
     summary_table = pd.DataFrame(columns=[
         'Date', 'CLIENT', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME'
     ])
     
-    # Process the data
-    # Convert date column to datetime
-    df['Date'] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
-    
     # Group by Date and Client
     grouped = df.groupby([df['Date'].dt.date, df.iloc[:, 6]])  # Column C for date, Column G for client
     
-    # Calculate metrics
+    # Calculate metrics for per client and date
     summary_data = []
     for (date, client), group in grouped:
-        # Get unique environments for this client and date
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
-        
-        # Count unique collectors (Column E)
-        unique_collectors = group.iloc[:, 4].nunique()
-        
-        # Total connected (all rows for this client and date)
+        unique_collectors = group.iloc[:, 4].nunique()  # Column E
         total_connected = len(group)
-        
-        # Total unique accounts (Column D - Customer Name)
-        total_accounts = group.iloc[:, 3].nunique()
-        
-        # Convert talk time to timedelta and sum (Column I)
-        talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))
+        total_accounts = group.iloc[:, 3].nunique()  # Column D
+        talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))  # Column I
         total_talk_time = talk_times.sum()
         
-        # Format total talk time
         total_seconds = int(total_talk_time.total_seconds())
         hours = total_seconds // 3600
         minutes = (total_seconds % 3600) // 60
@@ -81,11 +71,7 @@ if uploaded_file is not None:
             'TOTAL TALK TIME': total_talk_time_str
         })
     
-    # Create summary table
     summary_table = pd.DataFrame(summary_data)
-    
-    # Display the summary table
-    st.subheader("Summary Report Per Client and Date")
     st.dataframe(
         summary_table.style.format({
             'Date': '{:%d-%m-%Y}',
@@ -97,12 +83,60 @@ if uploaded_file is not None:
         use_container_width=True
     )
     
-    # Add download button for the summary
+    # Download button for per client and date summary
     csv = summary_table.to_csv(index=False)
     st.download_button(
-        label="Download Summary as CSV",
+        label="Download Per Client and Date Summary as CSV",
         data=csv,
         file_name="dialer_client_date_summary_report.csv",
+        mime="text/csv",
+    )
+    
+    # Overall Summary
+    st.subheader("Overall Summary")
+    overall_summary = pd.DataFrame(columns=[
+        'DATE RANGE', 'TOTAL COLLECTORS', 'TOTAL CONNECTED', 'TOTAL ACCOUNTS', 'TOTAL TALK TIME'
+    ])
+    
+    # Calculate overall metrics
+    min_date = df['Date'].min().strftime('%B %d, %Y')
+    max_date = df['Date'].max().strftime('%B %d, %Y')
+    date_range = f"{min_date} - {max_date}"
+    
+    total_collectors = df.iloc[:, 4].nunique()  # Column E
+    total_connected = len(df)
+    total_accounts = df.iloc[:, 3].nunique()  # Column D
+    total_talk_time = pd.to_timedelta(df.iloc[:, 8].astype(str)).sum()
+    
+    total_seconds = int(total_talk_time.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    
+    overall_summary = pd.DataFrame([{
+        'DATE RANGE': date_range,
+        'TOTAL COLLECTORS': total_collectors,
+        'TOTAL CONNECTED': total_connected,
+        'TOTAL ACCOUNTS': total_accounts,
+        'TOTAL TALK TIME': total_talk_time_str
+    }])
+    
+    st.dataframe(
+        overall_summary.style.format({
+            'TOTAL COLLECTORS': '{:,.0f}',
+            'TOTAL CONNECTED': '{:,.0f}',
+            'TOTAL ACCOUNTS': '{:,.0f}'
+        }),
+        use_container_width=True
+    )
+    
+    # Download button for overall summary
+    overall_csv = overall_summary.to_csv(index=False)
+    st.download_button(
+        label="Download Overall Summary as CSV",
+        data=overall_csv,
+        file_name="dialer_overall_summary_report.csv",
         mime="text/csv",
     )
 else:
