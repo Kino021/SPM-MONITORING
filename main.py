@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
+from io import BytesIO
 
 st.set_page_config(layout="wide", page_title="DIALER PRODUCTIVITY PER CRITERIA OF BALANCE", page_icon="📊", initial_sidebar_state="expanded")
 
-# Apply dark mode
+# Apply dark mode and custom header styling
 st.markdown(
     """
     <style>
@@ -14,17 +15,28 @@ st.markdown(
     .sidebar .sidebar-content {
         background: #2E2E2E;
     }
+    h1, h2, h3 {
+        color: #87CEEB !important;  /* Light blue color */
+        font-weight: bold !important;
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.title('SPM MONITORING')
+st.title('DIALER REPORT SUMMARY')
 
 @st.cache_data
 def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
     return df
+
+# Function to convert DataFrame to Excel bytes
+def to_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    return output.getvalue()
 
 # Move file uploader to the sidebar
 with st.sidebar:
@@ -50,20 +62,20 @@ if uploaded_file is not None:
     df_filtered = df[~df["Role"].isin(exclude_roles)]
     
     # 1. Per Client and Date Summary
-    st.subheader("Summary Report Per Client")
+    st.subheader("Summary Report Per Client and Date")
     summary_table = pd.DataFrame(columns=[
         'Date', 'CLIENT', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME',
         'AVG CONNECTED', 'AVG ACCOUNT', 'AVG TALKTIME'
     ])
     
-    grouped = df_filtered.groupby([df_filtered['Date'].dt.date, df_filtered.iloc[:, 6]])  # Column C for date, Column G for client
+    grouped = df_filtered.groupby([df_filtered['Date'].dt.date, df_filtered.iloc[:, 6]])
     summary_data = []
     for (date, client), group in grouped:
-        environment = ', '.join(group.iloc[:, 0].unique())  # Column A
-        unique_collectors = group.iloc[:, 4].nunique()  # Column E
-        total_connected = group.shape[0]  # Count rows for this specific date and client
-        total_accounts = group.iloc[:, 3].nunique()  # Column D
-        talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))  # Column I
+        environment = ', '.join(group.iloc[:, 0].unique())
+        unique_collectors = group.iloc[:, 4].nunique()
+        total_connected = group.shape[0]
+        total_accounts = group.iloc[:, 3].nunique()
+        talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))
         total_talk_time = talk_times.sum()
         
         total_seconds = int(total_talk_time.total_seconds())
@@ -72,7 +84,6 @@ if uploaded_file is not None:
         seconds = total_seconds % 60
         total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
-        # Calculate averages per collector
         avg_connected = total_connected / unique_collectors
         avg_account = total_accounts / unique_collectors
         avg_talktime_seconds = total_seconds / unique_collectors
@@ -109,17 +120,18 @@ if uploaded_file is not None:
     )
     
     st.download_button(
-        label="Download Per Client and Date Summary as CSV",
-        data=summary_table.to_csv(index=False),
-        file_name="dialer_client_date_summary_report.csv",
-        mime="text/csv",
+        label="Download Per Client and Date Summary as XLSX",
+        data=to_excel(summary_table),
+        file_name="dialer_client_date_summary_report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="download-client-date"
     )
     
     # Calculate number of unique days
     unique_days = df_filtered['Date'].dt.date.nunique()
     
-    # 2. Overall Summary
-    st.subheader("Overall Summary")
+    # 2. Overall Summary with Header
+    st.header("Overall Summary Report")
     overall_summary = pd.DataFrame(columns=[
         'DATE RANGE', 'TOTAL COLLECTORS', 'TOTAL CONNECTED', 'TOTAL ACCOUNTS', 'TOTAL TALK TIME',
         'AVG AGENTS/DAY', 'AVG CALLS/DAY', 'AVG ACCOUNTS/DAY', 'AVG TALKTIME/DAY'
@@ -129,9 +141,9 @@ if uploaded_file is not None:
     max_date = df_filtered['Date'].max().strftime('%B %d, %Y')
     date_range = f"{min_date} - {max_date}"
     
-    total_collectors = df_filtered.iloc[:, 4].nunique()  # Column E
-    total_connected = df_filtered.shape[0]  # Total rows across all filtered data
-    total_accounts = df_filtered.iloc[:, 3].nunique()  # Column D
+    total_collectors = df_filtered.iloc[:, 4].nunique()
+    total_connected = df_filtered.shape[0]
+    total_accounts = df_filtered.iloc[:, 3].nunique()
     total_talk_time = pd.to_timedelta(df_filtered.iloc[:, 8].astype(str)).sum()
     
     total_seconds = int(total_talk_time.total_seconds())
@@ -140,12 +152,10 @@ if uploaded_file is not None:
     seconds = total_seconds % 60
     total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     
-    # Calculate averages based on daily averages from summary_table
     avg_agents_per_day = summary_table['COLLECTOR'].mean()
-    avg_calls_per_day = summary_table['AVG CONNECTED'].mean()  # Average of daily per-collector connected
-    avg_accounts_per_day = summary_table['AVG ACCOUNT'].mean()  # Average of daily per-collector accounts
+    avg_calls_per_day = summary_table['AVG CONNECTED'].mean()
+    avg_accounts_per_day = summary_table['AVG ACCOUNT'].mean()
     
-    # Convert AVG TALKTIME strings to timedelta for averaging
     def str_to_timedelta(time_str):
         h, m, s = map(int, time_str.split(':'))
         return pd.Timedelta(hours=h, minutes=m, seconds=s)
@@ -183,10 +193,11 @@ if uploaded_file is not None:
     )
     
     st.download_button(
-        label="Download Overall Summary as CSV",
-        data=overall_summary.to_csv(index=False),
-        file_name="dialer_overall_summary_report.csv",
-        mime="text/csv",
+        label="Download Overall Summary as XLSX",
+        data=to_excel(overall_summary),
+        file_name="dialer_overall_summary_report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="download-overall"
     )
     
     # 3. Overall Per Client Summary
@@ -196,7 +207,7 @@ if uploaded_file is not None:
         'AVG AGENTS/DAY', 'AVG CALLS/DAY', 'AVG ACCOUNTS/DAY', 'AVG TALKTIME/DAY'
     ])
     
-    grouped_clients = df_filtered.groupby(df_filtered.iloc[:, 6])  # Column G for client
+    grouped_clients = df_filtered.groupby(df_filtered.iloc[:, 6])
     client_summary_data = []
     for client, group in grouped_clients:
         client_min_date = group['Date'].min().strftime('%B %d, %Y')
@@ -204,8 +215,8 @@ if uploaded_file is not None:
         client_date_range = f"{client_min_date} - {client_max_date}"
         client_unique_days = group['Date'].dt.date.nunique()
         
-        environment = ', '.join(group.iloc[:, 0].unique())  # Column A
-        unique_collectors = group.iloc[:, 4].nunique()  # Column E
+        environment = ', '.join(group.iloc[:, 0].unique())
+        unique_collectors = group.iloc[:, 4].nunique()
         total_connected = group.shape[0]
         total_accounts = group.iloc[:, 3].nunique()
         talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))
@@ -217,7 +228,6 @@ if uploaded_file is not None:
         seconds = total_seconds % 60
         total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
-        # Calculate averages per client
         client_summary_subset = summary_table[summary_table['CLIENT'] == client]
         avg_agents_per_day = client_summary_subset['COLLECTOR'].mean()
         avg_calls_per_day = client_summary_subset['TOTAL CONNECTED'].mean()
@@ -257,15 +267,16 @@ if uploaded_file is not None:
     )
     
     st.download_button(
-        label="Download Overall Per Client Summary as CSV",
-        data=client_summary.to_csv(index=False),
-        file_name="dialer_overall_client_summary_report.csv",
-        mime="text/csv",
+        label="Download Overall Per Client Summary as XLSX",
+        data=to_excel(client_summary),
+        file_name="dialer_overall_client_summary_report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="download-client-overall"
     )
 else:
     st.info("Please upload an Excel file using the sidebar to generate the report.")
 
-# Add some basic styling to the table
+# Add basic table styling
 st.markdown(
     """
     <style>
