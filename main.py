@@ -31,45 +31,73 @@ def load_data(uploaded_file):
     df = pd.read_excel(uploaded_file)
     return df
 
-# Function to convert DataFrame to Excel bytes with formatting
-def to_excel(df, sheet_name="Dialer Report"):
+# Function to convert single DataFrame to Excel bytes with formatting
+def to_excel_single(df, sheet_name):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name=sheet_name)
         
-        # Get the xlsxwriter workbook and worksheet objects
         workbook = writer.book
         worksheet = writer.sheets[sheet_name]
         
-        # Define formats
         header_format = workbook.add_format({
             'bold': True,
-            'bg_color': '#87CEEB',  # Light blue background
+            'bg_color': '#87CEEB',
             'border': 1,
             'align': 'center',
             'valign': 'vcenter'
         })
-        cell_format = workbook.add_format({
-            'border': 1
-        })
+        cell_format = workbook.add_format({'border': 1})
         
-        # Apply header format
         for col_num, value in enumerate(df.columns.values):
             worksheet.write(0, col_num, value, header_format)
         
-        # Apply cell format to data
         for row_num in range(1, len(df) + 1):
             for col_num in range(len(df.columns)):
                 worksheet.write(row_num, col_num, df.iloc[row_num-1, col_num], cell_format)
         
-        # Auto-adjust column widths
         for i, col in enumerate(df.columns):
             max_length = max(
-                df[col].astype(str).map(len).max(),  # Max length in column
-                len(str(col))  # Length of column header
+                df[col].astype(str).map(len).max(),
+                len(str(col))
             )
-            worksheet.set_column(i, i, max_length + 2)  # Add padding
-        
+            worksheet.set_column(i, i, max_length + 2)
+    
+    return output.getvalue()
+
+# Function to combine all DataFrames into one Excel file
+def to_excel_all(dfs, sheet_names):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        for df, sheet_name in zip(dfs, sheet_names):
+            df.to_excel(writer, index=False, sheet_name=sheet_name)
+            
+            workbook = writer.book
+            worksheet = writer.sheets[sheet_name]
+            
+            header_format = workbook.add_format({
+                'bold': True,
+                'bg_color': '#87CEEB',
+                'border': 1,
+                'align': 'center',
+                'valign': 'vcenter'
+            })
+            cell_format = workbook.add_format({'border': 1})
+            
+            for col_num, value in enumerate(df.columns.values):
+                worksheet.write(0, col_num, value, header_format)
+            
+            for row_num in range(1, len(df) + 1):
+                for col_num in range(len(df.columns)):
+                    worksheet.write(row_num, col_num, df.iloc[row_num-1, col_num], cell_format)
+            
+            for i, col in enumerate(df.columns):
+                max_length = max(
+                    df[col].astype(str).map(len).max(),
+                    len(str(col))
+                )
+                worksheet.set_column(i, i, max_length + 2)
+    
     return output.getvalue()
 
 # Move file uploader to the sidebar
@@ -137,7 +165,6 @@ if uploaded_file is not None:
             'AVG CONNECTED': avg_connected,
             'AVG ACCOUNT': avg_account,
             'AVG TALKTIME': avg_talktime_str
- Ascendingly
         })
     
     summary_table = pd.DataFrame(summary_data)
@@ -156,7 +183,7 @@ if uploaded_file is not None:
     
     st.download_button(
         label="Download Per Client and Date Summary as XLSX",
-        data=to_excel(summary_table, "Client_Date_Summary"),
+        data=to_excel_single(summary_table, "Client_Date_Summary"),
         file_name="dialer_client_date_summary_report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="download-client-date"
@@ -229,7 +256,7 @@ if uploaded_file is not None:
     
     st.download_button(
         label="Download Overall Summary as XLSX",
-        data=to_excel(overall_summary, "Overall_Summary"),
+        data=to_excel_single(overall_summary, "Overall_Summary"),
         file_name="dialer_overall_summary_report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="download-overall"
@@ -303,11 +330,24 @@ if uploaded_file is not None:
     
     st.download_button(
         label="Download Overall Per Client Summary as XLSX",
-        data=to_excel(client_summary, "Client_Summary"),
+        data=to_excel_single(client_summary, "Client_Summary"),
         file_name="dialer_overall_client_summary_report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="download-client-overall"
     )
+    
+    # Add Download All Categories button
+    st.subheader("Download All Reports")
+    all_dfs = [summary_table, overall_summary, client_summary]
+    all_sheet_names = ["Client_Date_Summary", "Overall_Summary", "Client_Summary"]
+    st.download_button(
+        label="Download All Categories as XLSX",
+        data=to_excel_all(all_dfs, all_sheet_names),
+        file_name="dialer_all_categories_report.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        key="download-all"
+    )
+    
 else:
     st.info("Please upload an Excel file using the sidebar to generate the report.")
 
