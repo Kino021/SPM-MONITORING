@@ -39,7 +39,6 @@ def to_excel_single(df, sheet_name):
         # Format dates properly before writing if 'Date' column exists
         df_copy = df.copy()
         if 'Date' in df_copy.columns:
-            # Handle different possible types of 'Date' column
             if pd.api.types.is_datetime64_any_dtype(df_copy['Date']):
                 df_copy['Date'] = df_copy['Date'].dt.strftime('%d-%m-%Y')
             elif pd.api.types.is_object_dtype(df_copy['Date']):
@@ -79,7 +78,6 @@ def to_excel_all(dfs, sheet_names):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         for df, sheet_name in zip(dfs, sheet_names):
-            # Format dates properly before writing if 'Date' column exists
             df_copy = df.copy()
             if 'Date' in df_copy.columns:
                 if pd.api.types.is_datetime64_any_dtype(df_copy['Date']):
@@ -116,13 +114,11 @@ def to_excel_all(dfs, sheet_names):
     
     return output.getvalue()
 
-# Move file uploader to the sidebar
 with st.sidebar:
     st.subheader("Upload File")
     uploaded_file = st.file_uploader("Choose an Excel file", type=['xlsx'])
 
 if uploaded_file is not None:
-    # Load the data
     df = load_data(uploaded_file)
     
     # Convert date column to datetime
@@ -136,16 +132,9 @@ if uploaded_file is not None:
         "Supervisor (without Predictive Dialer Monitor)"
     ]
     
-    # Filter out rows with excluded roles in Column E (index 4)
+    # Filter out rows with excluded roles and zero talk time
     df_filtered = df[~df["Role"].isin(exclude_roles)]
-
-        # Define roles to exclude
-    exclude_Talk Time Duration = [
-        "00:00:00",
-    ]
-    
-    # Filter out rows with excluded roles in Column E (index 4)
-    df_filtered = df[~df["Talk Time Duration"].isin(exclude_roles)]
+    df_filtered = df_filtered[df_filtered.iloc[:, 8] != "00:00:00"]
     
     # 1. Per Client and Date Summary
     st.subheader("Summary Report Per Client and Date")
@@ -170,7 +159,6 @@ if uploaded_file is not None:
         seconds = total_seconds % 60
         total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
-        # Round averages if decimal >= 0.5
         avg_connected = math.ceil(total_connected / unique_collectors) if (total_connected / unique_collectors) % 1 >= 0.5 else round(total_connected / unique_collectors)
         avg_account = math.ceil(total_accounts / unique_collectors) if (total_accounts / unique_collectors) % 1 >= 0.5 else round(total_accounts / unique_collectors)
         avg_talktime_seconds = total_seconds / unique_collectors
@@ -214,7 +202,6 @@ if uploaded_file is not None:
         key="download-client-date"
     )
     
-    # Calculate number of unique days
     unique_days = df_filtered['Date'].dt.date.nunique()
     
     # 2. Overall Summary with Header
@@ -239,7 +226,6 @@ if uploaded_file is not None:
     seconds = total_seconds % 60
     total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     
-    # Round averages if decimal >= 0.5
     avg_agents_per_day = math.ceil(summary_table['COLLECTOR'].mean()) if summary_table['COLLECTOR'].mean() % 1 >= 0.5 else round(summary_table['COLLECTOR'].mean())
     avg_calls_per_day = math.ceil(summary_table['AVG CONNECTED'].mean()) if summary_table['AVG CONNECTED'].mean() % 1 >= 0.5 else round(summary_table['AVG CONNECTED'].mean())
     avg_accounts_per_day = math.ceil(summary_table['AVG ACCOUNT'].mean()) if summary_table['AVG ACCOUNT'].mean() % 1 >= 0.5 else round(summary_table['AVG ACCOUNT'].mean())
