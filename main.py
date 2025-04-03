@@ -81,7 +81,7 @@ def to_excel_all(dfs, sheet_names):
             
             workbook = writer.book
             worksheet = writer.sheets[sheet_name]
- W
+            
             header_format = workbook.add_format({
                 'bold': True,
                 'bg_color': '#87CEEB',
@@ -182,8 +182,8 @@ if uploaded_file is not None:
             'COLLECTOR': '{:,.0f}',
             'TOTAL CONNECTED': '{:,.0f}',
             'TOTAL ACCOUNT': '{:,.0f}',
-            'AVG CONNECTED': '{:.0f}',  # Changed to 0 decimal places
-            'AVG ACCOUNT': '{:.0f}'     # Changed to 0 decimal places
+            'AVG CONNECTED': '{:.0f}',
+            'AVG ACCOUNT': '{:.0f}'
         }),
         height=500,
         use_container_width=True
@@ -256,9 +256,9 @@ if uploaded_file is not None:
             'TOTAL COLLECTORS': '{:,.0f}',
             'TOTAL CONNECTED': '{:,.0f}',
             'TOTAL ACCOUNTS': '{:,.0f}',
-            'AVG AGENTS/DAY': '{:.0f}',  # Changed to 0 decimal places
-            'AVG CALLS/DAY': '{:.0f}',   # Changed to 0 decimal places
-            'AVG ACCOUNTS/DAY': '{:.0f}' # Changed to 0 decimal places
+            'AVG AGENTS/DAY': '{:.0f}',
+            'AVG CALLS/DAY': '{:.0f}',
+            'AVG ACCOUNTS/DAY': '{:.0f}'
         }),
         use_container_width=True
     )
@@ -329,9 +329,9 @@ if uploaded_file is not None:
             'COLLECTOR': '{:,.0f}',
             'TOTAL CONNECTED': '{:,.0f}',
             'TOTAL ACCOUNT': '{:,.0f}',
-            'AVG AGENTS/DAY': '{:.0f}',  # Changed to 0 decimal places
-            'AVG CALLS/DAY': '{:.0f}',   # Changed to 0 decimal places
-            'AVG ACCOUNTS/DAY': '{:.0f}' # Changed to 0 decimal places
+            'AVG AGENTS/DAY': '{:.0f}',
+            'AVG CALLS/DAY': '{:.0f}',
+            'AVG ACCOUNTS/DAY': '{:.0f}'
         }),
         height=500,
         use_container_width=True
