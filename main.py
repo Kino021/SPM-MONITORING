@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import math
 
 st.set_page_config(layout="wide", page_title="DIALER PRODUCTIVITY PER CRITERIA OF BALANCE", page_icon="📊", initial_sidebar_state="expanded")
 
@@ -35,6 +36,9 @@ def load_data(uploaded_file):
 def to_excel_single(df, sheet_name):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        # Format dates properly before writing
+        if 'Date' in df.columns:
+            df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%d-%m-%Y')
         df.to_excel(writer, index=False, sheet_name=sheet_name)
         
         workbook = writer.book
@@ -70,11 +74,14 @@ def to_excel_all(dfs, sheet_names):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         for df, sheet_name in zip(dfs, sheet_names):
+            # Format dates properly before writing
+            if 'Date' in df.columns:
+                df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%d-%m-%Y')
             df.to_excel(writer, index=False, sheet_name=sheet_name)
             
             workbook = writer.book
             worksheet = writer.sheets[sheet_name]
-            
+ W
             header_format = workbook.add_format({
                 'bold': True,
                 'bg_color': '#87CEEB',
@@ -146,8 +153,9 @@ if uploaded_file is not None:
         seconds = total_seconds % 60
         total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
-        avg_connected = total_connected / unique_collectors
-        avg_account = total_accounts / unique_collectors
+        # Round averages if decimal >= 0.5
+        avg_connected = math.ceil(total_connected / unique_collectors) if (total_connected / unique_collectors) % 1 >= 0.5 else round(total_connected / unique_collectors)
+        avg_account = math.ceil(total_accounts / unique_collectors) if (total_accounts / unique_collectors) % 1 >= 0.5 else round(total_accounts / unique_collectors)
         avg_talktime_seconds = total_seconds / unique_collectors
         avg_t_hours = int(avg_talktime_seconds // 3600)
         avg_t_minutes = int((avg_talktime_seconds % 3600) // 60)
@@ -174,8 +182,8 @@ if uploaded_file is not None:
             'COLLECTOR': '{:,.0f}',
             'TOTAL CONNECTED': '{:,.0f}',
             'TOTAL ACCOUNT': '{:,.0f}',
-            'AVG CONNECTED': '{:.2f}',
-            'AVG ACCOUNT': '{:.2f}'
+            'AVG CONNECTED': '{:.0f}',  # Changed to 0 decimal places
+            'AVG ACCOUNT': '{:.0f}'     # Changed to 0 decimal places
         }),
         height=500,
         use_container_width=True
@@ -214,9 +222,10 @@ if uploaded_file is not None:
     seconds = total_seconds % 60
     total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     
-    avg_agents_per_day = summary_table['COLLECTOR'].mean()
-    avg_calls_per_day = summary_table['AVG CONNECTED'].mean()
-    avg_accounts_per_day = summary_table['AVG ACCOUNT'].mean()
+    # Round averages if decimal >= 0.5
+    avg_agents_per_day = math.ceil(summary_table['COLLECTOR'].mean()) if summary_table['COLLECTOR'].mean() % 1 >= 0.5 else round(summary_table['COLLECTOR'].mean())
+    avg_calls_per_day = math.ceil(summary_table['AVG CONNECTED'].mean()) if summary_table['AVG CONNECTED'].mean() % 1 >= 0.5 else round(summary_table['AVG CONNECTED'].mean())
+    avg_accounts_per_day = math.ceil(summary_table['AVG ACCOUNT'].mean()) if summary_table['AVG ACCOUNT'].mean() % 1 >= 0.5 else round(summary_table['AVG ACCOUNT'].mean())
     
     def str_to_timedelta(time_str):
         h, m, s = map(int, time_str.split(':'))
@@ -247,9 +256,9 @@ if uploaded_file is not None:
             'TOTAL COLLECTORS': '{:,.0f}',
             'TOTAL CONNECTED': '{:,.0f}',
             'TOTAL ACCOUNTS': '{:,.0f}',
-            'AVG AGENTS/DAY': '{:.2f}',
-            'AVG CALLS/DAY': '{:.2f}',
-            'AVG ACCOUNTS/DAY': '{:.2f}'
+            'AVG AGENTS/DAY': '{:.0f}',  # Changed to 0 decimal places
+            'AVG CALLS/DAY': '{:.0f}',   # Changed to 0 decimal places
+            'AVG ACCOUNTS/DAY': '{:.0f}' # Changed to 0 decimal places
         }),
         use_container_width=True
     )
@@ -291,9 +300,9 @@ if uploaded_file is not None:
         total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
         client_summary_subset = summary_table[summary_table['CLIENT'] == client]
-        avg_agents_per_day = client_summary_subset['COLLECTOR'].mean()
-        avg_calls_per_day = client_summary_subset['TOTAL CONNECTED'].mean()
-        avg_accounts_per_day = client_summary_subset['TOTAL ACCOUNT'].mean()
+        avg_agents_per_day = math.ceil(client_summary_subset['COLLECTOR'].mean()) if client_summary_subset['COLLECTOR'].mean() % 1 >= 0.5 else round(client_summary_subset['COLLECTOR'].mean())
+        avg_calls_per_day = math.ceil(client_summary_subset['TOTAL CONNECTED'].mean()) if client_summary_subset['TOTAL CONNECTED'].mean() % 1 >= 0.5 else round(client_summary_subset['TOTAL CONNECTED'].mean())
+        avg_accounts_per_day = math.ceil(client_summary_subset['TOTAL ACCOUNT'].mean()) if client_summary_subset['TOTAL ACCOUNT'].mean() % 1 >= 0.5 else round(client_summary_subset['TOTAL ACCOUNT'].mean())
         avg_talktime_seconds = total_talk_time.total_seconds() / client_unique_days
         avg_hours = int(avg_talktime_seconds // 3600)
         avg_minutes = int((avg_talktime_seconds % 3600) // 60)
@@ -320,9 +329,9 @@ if uploaded_file is not None:
             'COLLECTOR': '{:,.0f}',
             'TOTAL CONNECTED': '{:,.0f}',
             'TOTAL ACCOUNT': '{:,.0f}',
-            'AVG AGENTS/DAY': '{:.2f}',
-            'AVG CALLS/DAY': '{:.2f}',
-            'AVG ACCOUNTS/DAY': '{:.2f}'
+            'AVG AGENTS/DAY': '{:.0f}',  # Changed to 0 decimal places
+            'AVG CALLS/DAY': '{:.0f}',   # Changed to 0 decimal places
+            'AVG ACCOUNTS/DAY': '{:.0f}' # Changed to 0 decimal places
         }),
         height=500,
         use_container_width=True
@@ -336,18 +345,18 @@ if uploaded_file is not None:
         key="download-client-overall"
     )
     
-    # Add Download All Categories button
+    # 4. Download All Categories Button
     st.subheader("Download All Reports")
-    all_dfs = [summary_table, overall_summary, client_summary]
-    all_sheet_names = ["Client_Date_Summary", "Overall_Summary", "Client_Summary"]
     st.download_button(
         label="Download All Categories as XLSX",
-        data=to_excel_all(all_dfs, all_sheet_names),
+        data=to_excel_all(
+            [summary_table, overall_summary, client_summary],
+            ["Client_Date_Summary", "Overall_Summary", "Client_Summary"]
+        ),
         file_name="dialer_all_categories_report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="download-all"
     )
-    
 else:
     st.info("Please upload an Excel file using the sidebar to generate the report.")
 
