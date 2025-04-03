@@ -36,10 +36,15 @@ def load_data(uploaded_file):
 def to_excel_single(df, sheet_name):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        # Format dates properly before writing
-        if 'Date' in df.columns:
-            df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%d-%m-%Y')
-        df.to_excel(writer, index=False, sheet_name=sheet_name)
+        # Format dates properly before writing if 'Date' column exists
+        df_copy = df.copy()
+        if 'Date' in df_copy.columns:
+            # Handle different possible types of 'Date' column
+            if pd.api.types.is_datetime64_any_dtype(df_copy['Date']):
+                df_copy['Date'] = df_copy['Date'].dt.strftime('%d-%m-%Y')
+            elif pd.api.types.is_object_dtype(df_copy['Date']):
+                df_copy['Date'] = pd.to_datetime(df_copy['Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+        df_copy.to_excel(writer, index=False, sheet_name=sheet_name)
         
         workbook = writer.book
         worksheet = writer.sheets[sheet_name]
@@ -53,16 +58,16 @@ def to_excel_single(df, sheet_name):
         })
         cell_format = workbook.add_format({'border': 1})
         
-        for col_num, value in enumerate(df.columns.values):
+        for col_num, value in enumerate(df_copy.columns.values):
             worksheet.write(0, col_num, value, header_format)
         
-        for row_num in range(1, len(df) + 1):
-            for col_num in range(len(df.columns)):
-                worksheet.write(row_num, col_num, df.iloc[row_num-1, col_num], cell_format)
+        for row_num in range(1, len(df_copy) + 1):
+            for col_num in range(len(df_copy.columns)):
+                worksheet.write(row_num, col_num, df_copy.iloc[row_num-1, col_num], cell_format)
         
-        for i, col in enumerate(df.columns):
+        for i, col in enumerate(df_copy.columns):
             max_length = max(
-                df[col].astype(str).map(len).max(),
+                df_copy[col].astype(str).map(len).max(),
                 len(str(col))
             )
             worksheet.set_column(i, i, max_length + 2)
@@ -74,10 +79,14 @@ def to_excel_all(dfs, sheet_names):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         for df, sheet_name in zip(dfs, sheet_names):
-            # Format dates properly before writing
-            if 'Date' in df.columns:
-                df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%d-%m-%Y')
-            df.to_excel(writer, index=False, sheet_name=sheet_name)
+            # Format dates properly before writing if 'Date' column exists
+            df_copy = df.copy()
+            if 'Date' in df_copy.columns:
+                if pd.api.types.is_datetime64_any_dtype(df_copy['Date']):
+                    df_copy['Date'] = df_copy['Date'].dt.strftime('%d-%m-%Y')
+                elif pd.api.types.is_object_dtype(df_copy['Date']):
+                    df_copy['Date'] = pd.to_datetime(df_copy['Date'], errors='coerce').dt.strftime('%d-%m-%Y')
+            df_copy.to_excel(writer, index=False, sheet_name=sheet_name)
             
             workbook = writer.book
             worksheet = writer.sheets[sheet_name]
@@ -91,16 +100,16 @@ def to_excel_all(dfs, sheet_names):
             })
             cell_format = workbook.add_format({'border': 1})
             
-            for col_num, value in enumerate(df.columns.values):
+            for col_num, value in enumerate(df_copy.columns.values):
                 worksheet.write(0, col_num, value, header_format)
             
-            for row_num in range(1, len(df) + 1):
-                for col_num in range(len(df.columns)):
-                    worksheet.write(row_num, col_num, df.iloc[row_num-1, col_num], cell_format)
+            for row_num in range(1, len(df_copy) + 1):
+                for col_num in range(len(df_copy.columns)):
+                    worksheet.write(row_num, col_num, df_copy.iloc[row_num-1, col_num], cell_format)
             
-            for i, col in enumerate(df.columns):
+            for i, col in enumerate(df_copy.columns):
                 max_length = max(
-                    df[col].astype(str).map(len).max(),
+                    df_copy[col].astype(str).map(len).max(),
                     len(str(col))
                 )
                 worksheet.set_column(i, i, max_length + 2)
