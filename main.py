@@ -58,7 +58,7 @@ if uploaded_file is not None:
     for (date, client), group in grouped:
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
         unique_collectors = group.iloc[:, 4].nunique()  # Column E
-        total_connected = len(group)
+        total_connected = group.shape[0]  # Use shape[0] to count rows explicitly, excluding header
         total_accounts = group.iloc[:, 3].nunique()  # Column D
         talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))  # Column I
         total_talk_time = talk_times.sum()
@@ -113,7 +113,7 @@ if uploaded_file is not None:
     date_range = f"{min_date} - {max_date}"
     
     total_collectors = df_filtered.iloc[:, 4].nunique()  # Column E
-    total_connected = len(df_filtered)
+    total_connected = df_filtered.shape[0]  # Use shape[0] to count rows explicitly, excluding header
     total_accounts = df_filtered.iloc[:, 3].nunique()  # Column D
     total_talk_time = pd.to_timedelta(df_filtered.iloc[:, 8].astype(str)).sum()
     
@@ -181,7 +181,7 @@ if uploaded_file is not None:
         
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
         unique_collectors = group.iloc[:, 4].nunique()  # Column E
-        total_connected = len(group)
+        total_connected = group.shape[0]  # Use shape[0] to count rows explicitly, excluding header
         total_accounts = group.iloc[:, 3].nunique()  # Column D
         talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))  # Column I
         total_talk_time = talk_times.sum()
