@@ -40,10 +40,10 @@ if uploaded_file is not None:
     
     # Define roles to exclude
     exclude_roles = [
-        "SUPERVISOR",
-        "SUPERUSER",
-        "DIALER SPECIALIST",
-        "SUPERVISOR (WITHOUT PREDICTIVE DIALER MONITOR)"
+        "Supervisor",
+        "Superuser",
+        "Dialer specialist",
+        "Supervisor (without Predictive Dialer Monitor)"
     ]
     
     # Filter out rows with excluded roles in Column E (index 4)
