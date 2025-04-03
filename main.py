@@ -19,7 +19,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.title('DIALER REPORT PER CLIENT')
+st.title('DIALER REPORT PER CLIENT AND DATE')
 
 @st.cache_data
 def load_data(uploaded_file):
@@ -35,23 +35,26 @@ if uploaded_file is not None:
     
     # Create summary table
     summary_table = pd.DataFrame(columns=[
-        'CLIENT', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME'
+        'Date', 'CLIENT', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME'
     ])
     
     # Process the data
-    # Group by Client (Column G)
-    grouped = df.groupby(df.iloc[:, 6])  # Column G for client
+    # Convert date column to datetime
+    df['Date'] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
+    
+    # Group by Date and Client
+    grouped = df.groupby([df['Date'].dt.date, df.iloc[:, 6]])  # Column C for date, Column G for client
     
     # Calculate metrics
     summary_data = []
-    for client, group in grouped:
-        # Get unique environments for this client
+    for (date, client), group in grouped:
+        # Get unique environments for this client and date
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
         
         # Count unique collectors (Column E)
         unique_collectors = group.iloc[:, 4].nunique()
         
-        # Total connected (all rows for this client)
+        # Total connected (all rows for this client and date)
         total_connected = len(group)
         
         # Total unique accounts (Column D - Customer Name)
@@ -69,6 +72,7 @@ if uploaded_file is not None:
         total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
         summary_data.append({
+            'Date': date,
             'CLIENT': client,
             'ENVIRONMENT': environment,
             'COLLECTOR': unique_collectors,
@@ -81,9 +85,10 @@ if uploaded_file is not None:
     summary_table = pd.DataFrame(summary_data)
     
     # Display the summary table
-    st.subheader("Summary Report Per Client")
+    st.subheader("Summary Report Per Client and Date")
     st.dataframe(
         summary_table.style.format({
+            'Date': '{:%d-%m-%Y}',
             'COLLECTOR': '{:,.0f}',
             'TOTAL CONNECTED': '{:,.0f}',
             'TOTAL ACCOUNT': '{:,.0f}'
@@ -97,7 +102,7 @@ if uploaded_file is not None:
     st.download_button(
         label="Download Summary as CSV",
         data=csv,
-        file_name="dialer_client_summary_report.csv",
+        file_name="dialer_client_date_summary_report.csv",
         mime="text/csv",
     )
 else:
