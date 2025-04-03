@@ -33,10 +33,6 @@ if uploaded_file is not None:
     # Load the data
     df = load_data(uploaded_file)
     
-    # Debug: Show raw row count
-    st.write(f"Raw row count from Excel (including header): {df.shape[0] + 1}")
-    st.write(f"Data rows after loading (excluding header): {df.shape[0]}")
-    
     # Convert date column to datetime
     df['Date'] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
     
@@ -51,9 +47,6 @@ if uploaded_file is not None:
     # Filter out rows with excluded roles in Column E (index 4)
     df_filtered = df[~df.iloc[:, 4].isin(exclude_roles)]
     
-    # Debug: Show filtered row count
-    st.write(f"Rows after filtering excluded roles: {df_filtered.shape[0]}")
-    
     # 1. Per Client and Date Summary
     st.subheader("Summary Report Per Client and Date")
     summary_table = pd.DataFrame(columns=[
@@ -65,7 +58,7 @@ if uploaded_file is not None:
     for (date, client), group in grouped:
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
         unique_collectors = group.iloc[:, 4].nunique()  # Column E
-        total_connected = group.shape[0]  # Rows for this date and client
+        total_connected = group.shape[0]  # Count rows for this specific date and client
         total_accounts = group.iloc[:, 3].nunique()  # Column D
         talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))  # Column I
         total_talk_time = talk_times.sum()
@@ -132,13 +125,13 @@ if uploaded_file is not None:
     
     # Calculate averages
     avg_agents_per_day = summary_table['COLLECTOR'].mean()
-    avg_calls_per_day = summary_table['TOTAL CONNECTED'].mean()
+    avg_calls_per_day = summary_table['TOTAL CONNECTED'].mean()  # Average of per-day-per-client counts
     avg_accounts_per_day = summary_table['TOTAL ACCOUNT'].mean()
     avg_talktime_seconds = total_talk_time.total_seconds() / unique_days
     avg_hours = int(avg_talktime_seconds // 3600)
     avg_minutes = int((avg_talktime_seconds % 3600) // 60)
     avg_seconds = int(avg_talktime_seconds % 60)
-    avg_talktime_str = f"{avg_hours:02d}:{avg_minutes:02d}:{seconds:02d}"
+    avg_talktime_str = f"{avg_hours:02d}:{avg_minutes:02d}:{avg_seconds:02d}"
     
     overall_summary = pd.DataFrame([{
         'DATE RANGE': date_range,
@@ -188,7 +181,7 @@ if uploaded_file is not None:
         
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
         unique_collectors = group.iloc[:, 4].nunique()  # Column E
-        total_connected = group.shape[0]  # Rows for this client across all dates
+        total_connected = group.shape[0]  # Count rows for this specific client across all dates
         total_accounts = group.iloc[:, 3].nunique()  # Column D
         talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))  # Column I
         total_talk_time = talk_times.sum()
@@ -202,7 +195,7 @@ if uploaded_file is not None:
         # Calculate averages per client
         client_summary_subset = summary_table[summary_table['CLIENT'] == client]
         avg_agents_per_day = client_summary_subset['COLLECTOR'].mean()
-        avg_calls_per_day = client_summary_subset['TOTAL CONNECTED'].mean()
+        avg_calls_per_day = client_summary_subset['TOTAL CONNECTED'].mean()  # Average of per-day counts for this client
         avg_accounts_per_day = client_summary_subset['TOTAL ACCOUNT'].mean()
         avg_talktime_seconds = total_talk_time.total_seconds() / client_unique_days
         avg_hours = int(avg_talktime_seconds // 3600)
