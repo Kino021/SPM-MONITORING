@@ -88,15 +88,23 @@ if uploaded_file is not None:
     with st.container():
         st.subheader("Daily Summary")
         
-        # Convert date column (Column C) to datetime with explicit dd-mm-yyyy format
+        # Debugging: Show column names and first few rows
+        st.write("Column names:", df.columns.tolist())
+        st.write("First 5 rows of the DataFrame:", df.head())
+        
+        # Convert date column (Column C, index 2) to datetime with explicit format
         date_col = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y', errors='coerce')
         
-        # Debugging: Display unique values in the date column to identify issues
+        # Debugging: Show unique values and type after conversion
         st.write("Unique values in Date column (Column C):", df.iloc[:, 2].unique())
+        st.write("Type of date column before filtering:", df.iloc[:, 2].dtype)
         
         # Filter out rows where date conversion failed (NaT)
         df = df[~date_col.isna()].copy()
-        df.loc[:, df.columns[2]] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
+        
+        # Ensure the column is datetime after filtering
+        df.iloc[:, 2] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
+        st.write("Type of date column after conversion:", df.iloc[:, 2].dtype)
         
         # Group by date
         summary_data = df.groupby(df.iloc[:, 2].dt.date).agg({
