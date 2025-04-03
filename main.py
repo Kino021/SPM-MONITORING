@@ -47,7 +47,7 @@ if uploaded_file is not None:
     ]
     
     # Filter out rows with excluded roles in Column E (index 4)
-    df_filtered = df[~df.iloc[:, 4].str.lower().isin([role.lower() for role in exclude_roles])]
+    df_filtered = df[~df["Role"].isin(exclude_roles)]
 
     st.write(df_filtered)
     
