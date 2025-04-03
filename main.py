@@ -50,7 +50,7 @@ if uploaded_file is not None:
     df_filtered = df[~df["Role"].isin(exclude_roles)]
     
     # 1. Per Client and Date Summary
-    st.subheader("Summary Report Per Client and Date")
+    st.subheader("Summary Report Per Client")
     summary_table = pd.DataFrame(columns=[
         'Date', 'CLIENT', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME',
         'AVG CONNECTED', 'AVG ACCOUNT', 'AVG TALKTIME'
