@@ -52,7 +52,8 @@ if uploaded_file is not None:
     # 1. Per Client and Date Summary
     st.subheader("Summary Report Per Client and Date")
     summary_table = pd.DataFrame(columns=[
-        'Date', 'CLIENT', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME'
+        'Date', 'CLIENT', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME',
+        'AVG CONNECTED', 'AVG ACCOUNT', 'AVG TALKTIME'
     ])
     
     grouped = df_filtered.groupby([df_filtered['Date'].dt.date, df_filtered.iloc[:, 6]])  # Column C for date, Column G for client
@@ -71,6 +72,15 @@ if uploaded_file is not None:
         seconds = total_seconds % 60
         total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
+        # Calculate averages per collector
+        avg_connected = total_connected / unique_collectors
+        avg_account = total_accounts / unique_collectors
+        avg_talktime_seconds = total_seconds / unique_collectors
+        avg_t_hours = int(avg_talktime_seconds // 3600)
+        avg_t_minutes = int((avg_talktime_seconds % 3600) // 60)
+        avg_t_seconds = int(avg_talktime_seconds % 60)
+        avg_talktime_str = f"{avg_t_hours:02d}:{avg_t_minutes:02d}:{avg_t_seconds:02d}"
+        
         summary_data.append({
             'Date': date,
             'CLIENT': client,
@@ -78,7 +88,10 @@ if uploaded_file is not None:
             'COLLECTOR': unique_collectors,
             'TOTAL CONNECTED': total_connected,
             'TOTAL ACCOUNT': total_accounts,
-            'TOTAL TALK TIME': total_talk_time_str
+            'TOTAL TALK TIME': total_talk_time_str,
+            'AVG CONNECTED': avg_connected,
+            'AVG ACCOUNT': avg_account,
+            'AVG TALKTIME': avg_talktime_str
         })
     
     summary_table = pd.DataFrame(summary_data)
@@ -87,7 +100,9 @@ if uploaded_file is not None:
             'Date': '{:%d-%m-%Y}',
             'COLLECTOR': '{:,.0f}',
             'TOTAL CONNECTED': '{:,.0f}',
-            'TOTAL ACCOUNT': '{:,.0f}'
+            'TOTAL ACCOUNT': '{:,.0f}',
+            'AVG CONNECTED': '{:.2f}',
+            'AVG ACCOUNT': '{:.2f}'
         }),
         height=500,
         use_container_width=True
@@ -127,7 +142,7 @@ if uploaded_file is not None:
     
     # Calculate averages
     avg_agents_per_day = summary_table['COLLECTOR'].mean()
-    avg_calls_per_day = summary_table['TOTAL CONNECTED'].mean()  # Average of per-day-per-client counts
+    avg_calls_per_day = summary_table['TOTAL CONNECTED'].mean()
     avg_accounts_per_day = summary_table['TOTAL ACCOUNT'].mean()
     avg_talktime_seconds = total_talk_time.total_seconds() / unique_days
     avg_hours = int(avg_talktime_seconds // 3600)
@@ -183,9 +198,9 @@ if uploaded_file is not None:
         
         environment = ', '.join(group.iloc[:, 0].unique())  # Column A
         unique_collectors = group.iloc[:, 4].nunique()  # Column E
-        total_connected = group.shape[0]  # Count rows for this specific client across all dates
-        total_accounts = group.iloc[:, 3].nunique()  # Column D
-        talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))  # Column I
+        total_connected = group.shape[0]
+        total_accounts = group.iloc[:, 3].nunique()
+        talk_times = pd.to_timedelta(group.iloc[:, 8].astype(str))
         total_talk_time = talk_times.sum()
         
         total_seconds = int(total_talk_time.total_seconds())
@@ -197,13 +212,13 @@ if uploaded_file is not None:
         # Calculate averages per client
         client_summary_subset = summary_table[summary_table['CLIENT'] == client]
         avg_agents_per_day = client_summary_subset['COLLECTOR'].mean()
-        avg_calls_per_day = client_summary_subset['TOTAL CONNECTED'].mean()  # Average of per-day counts for this client
+        avg_calls_per_day = client_summary_subset['TOTAL CONNECTED'].mean()
         avg_accounts_per_day = client_summary_subset['TOTAL ACCOUNT'].mean()
         avg_talktime_seconds = total_talk_time.total_seconds() / client_unique_days
         avg_hours = int(avg_talktime_seconds // 3600)
         avg_minutes = int((avg_talktime_seconds % 3600) // 60)
         avg_seconds = int(avg_talktime_seconds % 60)
-        avg_talktime_str = f"{avg_hours:02d}:{avg_minutes:02d}:{avg_seconds:02d}"
+        avg_talktime_str = f"{avg_hours:02d}:{avg_t_minutes:02d}:{avg_seconds:02d}"
         
         client_summary_data.append({
             'CLIENT': client,
