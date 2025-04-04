@@ -116,7 +116,7 @@ def to_excel_all(dfs, sheet_names):
 
 # Define the MC-to-Client mapping
 mc_mapping = {
-    'MC 10': ['UBP PREWRITE CURING PL BIF', 'UBP PREWRITE BLUE', 'UBP PREWRITE NTB', 'UBP PREWRITE ORANGE', 'UBP SEEKCAP', 'UBP SME 90DPD', 'UBP RECOV NEWLY', 'UBP RECOV OLD1', 'UBP RECOV OLD2', 'UBP RECOV YOUNG MODEL', 'UBP COMBANK RMG', 'UBP RECOV BLUE'],
+    'MC 10': ['UBP PREWRITE CURING PL BIF', 'UBP PREWRITE BLUE', 'UBP PREWRITE NTB', 'UBP PREWRITE ORANGE', 'UBP SEEKCAP', 'UB    'UBP SME 90DPD', 'UBP RECOV NEWLY', 'UBP RECOV OLD1', 'UBP RECOV OLD2', 'UBP RECOV YOUNG MODEL', 'UBP COMBANK RMG', 'UBP RECOV BLUE'],
     'MC 16': ['FHL SALMON', 'GARNET', 'TONIK', 'HOME CREDIT', 'MAYA', 'UNIONDIGITAL', 'NCCF SALARY LOAN', 'TENDOPAY'],
     'MC 04': ['SBC CARDS CURING B2', 'SBF SALAD', 'SBF PL', 'SBC CARDS & LOAN L6', 'SBC CARDS RECOV L1', 'SBC PL RECOV L1', 'SBC CURING B4'],
     'MC 03': ['PSB AUTO CURING', 'SBC AUTO LOAN CURING', 'CSB REPO', 'MALAYAN SAVINGS BANK', 'BPI AUTO SKIP', 'ORICO AUTO LOAN', 'PSB AUTO', 'BPI AUTO', 'SUMISHO', 'MITSUKOSHI RECOV', 'BDO AUTO RMU', 'CBS AUTO LOAN', 'EWB AUTO', 'TOYOTA LEVEL 3', 'BANK OF MAKATI', 'RCBC AUTO LOAN', 'ROB BIKE', 'ROB AUTO', 'SBF MOTOR LOAN', 'TFS LEVEL 2 REGULAR'],
@@ -387,7 +387,7 @@ if uploaded_file is not None:
         mc_min_date = group['Date'].min().strftime('%B %d, %Y')
         mc_max_date = group['Date'].max().strftime('%B %d, %Y')
         mc_date_range = f"{mc_min_date} - {mc_max_date}"
-        mc_unique_days = group['Date'].dt.date.n jolie()
+        mc_unique_days = group['Date'].dt.date.nunique()
         
         clients = ', '.join(group.iloc[:, 6].unique())
         environment = ', '.join(group.iloc[:, 0].unique())
