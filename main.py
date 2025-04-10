@@ -285,7 +285,7 @@ if uploaded_file is not None:
         st.header("Overall Summary Report")
         overall_summary = pd.DataFrame(columns=[
             'DATE RANGE', 'TOTAL COLLECTORS', 'TOTAL CONNECTED', 'TOTAL ACCOUNTS', 'TOTAL TALK TIME',
-            'AVG AGENTS/DAY', 'AVG CALLS/DAY', 'AVG ACCOUNTS/DAY', 'AVG TALKTIME/DAY'
+            'AVG AGENTS/DAY', 'AVG CALLS/DAY', 'AVG CONNECTED/DAY', 'AVG ACCOUNTS/DAY', 'AVG TALKTIME/DAY'
         ])
         
         min_date = df_filtered['Date'].min()
@@ -309,16 +309,17 @@ if uploaded_file is not None:
         seconds = total_seconds % 60
         total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
-        # Use averages from daily_summary_table instead
+        # Use averages from daily_summary_table
         avg_agents_per_day = math.ceil(daily_summary_table['COLLECTOR'].mean()) if daily_summary_table['COLLECTOR'].mean() % 1 >= 0.5 else round(daily_summary_table['COLLECTOR'].mean())
         avg_calls_per_day = math.ceil(daily_summary_table['TOTAL CONNECTED'].mean()) if daily_summary_table['TOTAL CONNECTED'].mean() % 1 >= 0.5 else round(daily_summary_table['TOTAL CONNECTED'].mean())
+        avg_connected_per_day = math.ceil(daily_summary_table['AVG CONNECTED'].mean()) if daily_summary_table['AVG CONNECTED'].mean() % 1 >= 0.5 else round(daily_summary_table['AVG CONNECTED'].mean())
         avg_accounts_per_day = math.ceil(daily_summary_table['TOTAL ACCOUNT'].mean()) if daily_summary_table['TOTAL ACCOUNT'].mean() % 1 >= 0.5 else round(daily_summary_table['TOTAL ACCOUNT'].mean())
 
         def str_to_timedelta(time_str):
             h, m, s = map(int, time_str.split(':'))
             return pd.Timedelta(hours=h, minutes=m, seconds=s)
 
-        avg_talktimes = daily_summary_table['TOTAL TALK TIME'].apply(str_to_timedelta)
+        avg_talktimes = daily_summary_table['AVG TALKTIME'].apply(str_to_timedelta)
         avg_talktime_per_day = avg_talktimes.mean()
         avg_t_seconds = int(avg_talktime_per_day.total_seconds())
         avg_hours = avg_t_seconds // 3600
@@ -334,6 +335,7 @@ if uploaded_file is not None:
             'TOTAL TALK TIME': total_talk_time_str,
             'AVG AGENTS/DAY': avg_agents_per_day,
             'AVG CALLS/DAY': avg_calls_per_day,
+            'AVG CONNECTED/DAY': avg_connected_per_day,
             'AVG ACCOUNTS/DAY': avg_accounts_per_day,
             'AVG TALKTIME/DAY': avg_talktime_str
         }])
@@ -345,6 +347,7 @@ if uploaded_file is not None:
                 'TOTAL ACCOUNTS': '{:,.0f}',
                 'AVG AGENTS/DAY': '{:.0f}',
                 'AVG CALLS/DAY': '{:.0f}',
+                'AVG CONNECTED/DAY': '{:.0f}',
                 'AVG ACCOUNTS/DAY': '{:.0f}'
             }),
             use_container_width=True
@@ -382,7 +385,7 @@ if uploaded_file is not None:
             total_connected = group.shape[0]
             total_accounts = group['Account'].nunique()
             talk_times = pd.to_timedelta(group['Talk Time Duration'].astype(str))
-            total_talk_time = talk_times.sum()
+            total_talk_time = talkWait times.sum()
             
             total_seconds = int(total_talk_time.total_seconds())
             hours = total_seconds // 3600
