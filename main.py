@@ -296,34 +296,36 @@ if uploaded_file is not None:
             min_date_str = min_date.strftime('%B %d, %Y')
             max_date_str = max_date.strftime('%B %d, %Y')
             date_range = f"{min_date_str} - {max_date_str}"
-        
+
+        # Calculate totals from filtered data
         total_collectors = df_filtered['Collector'].nunique()
         total_connected = df_filtered.shape[0]
         total_accounts = df_filtered['Account'].nunique()
         total_talk_time = pd.to_timedelta(df_filtered['Talk Time Duration'].astype(str)).sum()
-        
+
         total_seconds = int(total_talk_time.total_seconds())
         hours = total_seconds // 3600
         minutes = (total_seconds % 3600) // 60
         seconds = total_seconds % 60
         total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        
-        avg_agents_per_day = math.ceil(summary_table['COLLECTOR'].mean()) if summary_table['COLLECTOR'].mean() % 1 >= 0.5 else round(summary_table['COLLECTOR'].mean())
-        avg_calls_per_day = math.ceil(summary_table['AVG CONNECTED'].mean()) if summary_table['AVG CONNECTED'].mean() % 1 >= 0.5 else round(summary_table['AVG CONNECTED'].mean())
-        avg_accounts_per_day = math.ceil(summary_table['AVG ACCOUNT'].mean()) if summary_table['AVG ACCOUNT'].mean() % 1 >= 0.5 else round(summary_table['AVG ACCOUNT'].mean())
-        
+
+        # Use averages from daily_summary_table instead
+        avg_agents_per_day = math.ceil(daily_summary_table['COLLECTOR'].mean()) if daily_summary_table['COLLECTOR'].mean() % 1 >= 0.5 else round(daily_summary_table['COLLECTOR'].mean())
+        avg_calls_per_day = math.ceil(daily_summary_table['TOTAL CONNECTED'].mean()) if daily_summary_table['TOTAL CONNECTED'].mean() % 1 >= 0.5 else round(daily_summary_table['TOTAL CONNECTED'].mean())
+        avg_accounts_per_day = math.ceil(daily_summary_table['TOTAL ACCOUNT'].mean()) if daily_summary_table['TOTAL ACCOUNT'].mean() % 1 >= 0.5 else round(daily_summary_table['TOTAL ACCOUNT'].mean())
+
         def str_to_timedelta(time_str):
             h, m, s = map(int, time_str.split(':'))
             return pd.Timedelta(hours=h, minutes=m, seconds=s)
-        
-        avg_talktimes = summary_table['AVG TALKTIME'].apply(str_to_timedelta)
+
+        avg_talktimes = daily_summary_table['TOTAL TALK TIME'].apply(str_to_timedelta)
         avg_talktime_per_day = avg_talktimes.mean()
         avg_t_seconds = int(avg_talktime_per_day.total_seconds())
         avg_hours = avg_t_seconds // 3600
         avg_minutes = (avg_t_seconds % 3600) // 60
         avg_seconds = avg_t_seconds % 60
         avg_talktime_str = f"{avg_hours:02d}:{avg_minutes:02d}:{avg_seconds:02d}"
-        
+
         overall_summary = pd.DataFrame([{
             'DATE RANGE': date_range,
             'TOTAL COLLECTORS': total_collectors,
@@ -335,7 +337,7 @@ if uploaded_file is not None:
             'AVG ACCOUNTS/DAY': avg_accounts_per_day,
             'AVG TALKTIME/DAY': avg_talktime_str
         }])
-        
+
         st.dataframe(
             overall_summary.style.format({
                 'TOTAL COLLECTORS': '{:,.0f}',
