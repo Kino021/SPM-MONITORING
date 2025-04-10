@@ -214,14 +214,80 @@ if uploaded_file is not None:
             key="download-client-date"
         )
         
-        # 2. Overall Summary with Header
+        # 2. Summary Per Day
+        st.subheader("Summary Report Per Day")
+        daily_summary_table = pd.DataFrame(columns=[
+            'Date', 'CLIENT', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME',
+            'AVG CONNECTED', 'AVG ACCOUNT', 'AVG TALKTIME'
+        ])
+        
+        daily_grouped = df_filtered.groupby(df_filtered['Date'].dt.date)
+        daily_summary_data = []
+        for date, group in daily_grouped:
+            clients = ', '.join(group['Client'].unique())  # List all unique clients
+            environment = ', '.join(group['ENVIRONMENT'].unique())
+            unique_collectors = group['Collector'].nunique()
+            total_connected = group.shape[0]
+            total_accounts = group['Account'].nunique()
+            talk_times = pd.to_timedelta(group['Talk Time Duration'].astype(str))
+            total_talk_time = talk_times.sum()
+            
+            total_seconds = int(total_talk_time.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            seconds = total_seconds % 60
+            total_talk_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            
+            avg_connected = math.ceil(total_connected / unique_collectors) if (total_connected / unique_collectors) % 1 >= 0.5 else round(total_connected / unique_collectors)
+            avg_account = math.ceil(total_accounts / unique_collectors) if (total_accounts / unique_collectors) % 1 >= 0.5 else round(total_accounts / unique_collectors)
+            avg_talktime_seconds = total_seconds / unique_collectors
+            avg_t_hours = int(avg_talktime_seconds // 3600)
+            avg_t_minutes = int((avg_talktime_seconds % 3600) // 60)
+            avg_t_seconds = int(avg_talktime_seconds % 60)
+            avg_talktime_str = f"{avg_t_hours:02d}:{avg_t_minutes:02d}:{avg_t_seconds:02d}"
+            
+            daily_summary_data.append({
+                'Date': date,
+                'CLIENT': clients,
+                'ENVIRONMENT': environment,
+                'COLLECTOR': unique_collectors,
+                'TOTAL CONNECTED': total_connected,
+                'TOTAL ACCOUNT': total_accounts,
+                'TOTAL TALK TIME': total_talk_time_str,
+                'AVG CONNECTED': avg_connected,
+                'AVG ACCOUNT': avg_account,
+                'AVG TALKTIME': avg_talktime_str
+            })
+        
+        daily_summary_table = pd.DataFrame(daily_summary_data)
+        st.dataframe(
+            daily_summary_table.style.format({
+                'Date': '{:%d-%m-%Y}',
+                'COLLECTOR': '{:,.0f}',
+                'TOTAL CONNECTED': '{:,.0f}',
+                'TOTAL ACCOUNT': '{:,.0f}',
+                'AVG CONNECTED': '{:.0f}',
+                'AVG ACCOUNT': '{:.0f}'
+            }),
+            height=500,
+            use_container_width=True
+        )
+        
+        st.download_button(
+            label="Download Per Day Summary as XLSX",
+            data=to_excel_single(daily_summary_table, "Daily_Summary"),
+            file_name="dialer_daily_summary_report.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download-daily"
+        )
+        
+        # 3. Overall Summary with Header
         st.header("Overall Summary Report")
         overall_summary = pd.DataFrame(columns=[
             'DATE RANGE', 'TOTAL COLLECTORS', 'TOTAL CONNECTED', 'TOTAL ACCOUNTS', 'TOTAL TALK TIME',
             'AVG AGENTS/DAY', 'AVG CALLS/DAY', 'AVG ACCOUNTS/DAY', 'AVG TALKTIME/DAY'
         ])
         
-        # Handle NaT in min/max dates
         min_date = df_filtered['Date'].min()
         max_date = df_filtered['Date'].max()
         if pd.isna(min_date) or pd.isna(max_date):
@@ -290,7 +356,7 @@ if uploaded_file is not None:
             key="download-overall"
         )
         
-        # 3. Overall Per Client Summary
+        # 4. Overall Per Client Summary
         st.subheader("Overall Per Client Summary")
         client_summary = pd.DataFrame(columns=[
             'CLIENT', 'DATE RANGE', 'ENVIRONMENT', 'COLLECTOR', 'TOTAL CONNECTED', 'TOTAL ACCOUNT', 'TOTAL TALK TIME',
@@ -308,7 +374,6 @@ if uploaded_file is not None:
                 client_min_date_str = client_min_date.strftime('%B %d, %Y')
                 client_max_date_str = client_max_date.strftime('%B %d, %Y')
                 client_date_range = f"{client_min_date_str} - {client_max_date_str}"
-            # client_unique_days = group['Date'].dt.date.nunique()  # No longer needed for AVG TALKTIME/DAY
             
             environment = ', '.join(group['ENVIRONMENT'].unique())
             unique_collectors = group['Collector'].nunique()
@@ -328,10 +393,9 @@ if uploaded_file is not None:
             avg_calls_per_day = math.ceil(client_summary_subset['TOTAL CONNECTED'].mean()) if client_summary_subset['TOTAL CONNECTED'].mean() % 1 >= 0.5 else round(client_summary_subset['TOTAL CONNECTED'].mean())
             avg_accounts_per_day = math.ceil(client_summary_subset['TOTAL ACCOUNT'].mean()) if client_summary_subset['TOTAL ACCOUNT'].mean() % 1 >= 0.5 else round(client_summary_subset['TOTAL ACCOUNT'].mean())
             
-            # Calculate AVG TALKTIME/DAY as the mean of AVG TALKTIME from summary_table for this client
             client_avg_talktimes = client_summary_subset['AVG TALKTIME'].apply(str_to_timedelta)
             avg_talktime_per_day = client_avg_talktimes.mean()
-            if pd.isna(avg_talktime_per_day):  # Handle case where no valid talk times exist
+            if pd.isna(avg_talktime_per_day):
                 avg_talktime_str = "00:00:00"
             else:
                 avg_t_seconds = int(avg_talktime_per_day.total_seconds())
@@ -376,13 +440,13 @@ if uploaded_file is not None:
             key="download-client-overall"
         )
         
-        # 4. Download All Categories Button
+        # 5. Download All Categories Button
         st.subheader("Download All Reports")
         st.download_button(
             label="Download All Categories as XLSX",
             data=to_excel_all(
-                [summary_table, overall_summary, client_summary],
-                ["Client_Date_Summary", "Overall_Summary", "Client_Summary"]
+                [summary_table, daily_summary_table, overall_summary, client_summary],
+                ["Client_Date_Summary", "Daily_Summary", "Overall_Summary", "Client_Summary"]
             ),
             file_name="dialer_all_categories_report.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
