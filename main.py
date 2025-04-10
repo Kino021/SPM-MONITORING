@@ -121,8 +121,17 @@ with st.sidebar:
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     
-    # Convert date column to datetime
-    df['Date'] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y')
+    # Debug: Display column names and sample of third column
+    st.write("Column names:", df.columns.tolist())
+    st.write("Sample of third column (assumed Date):", df.iloc[:, 2].head(10).tolist())
+    
+    # Convert date column with error handling
+    df['Date'] = pd.to_datetime(df.iloc[:, 2], format='%d-%m-%Y', errors='coerce')
+    
+    # Check for invalid dates and warn user
+    if df['Date'].isna().any():
+        st.warning("Some dates could not be parsed. Check these rows:")
+        st.write(df[df['Date'].isna()])
     
     # Define roles to exclude
     exclude_roles = [
