@@ -385,7 +385,7 @@ if uploaded_file is not None:
             total_connected = group.shape[0]
             total_accounts = group['Account'].nunique()
             talk_times = pd.to_timedelta(group['Talk Time Duration'].astype(str))
-            total_talk_time = talkWait times.sum()
+            total_talk_time = talk_times.sum()
             
             total_seconds = int(total_talk_time.total_seconds())
             hours = total_seconds // 3600
