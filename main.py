@@ -308,7 +308,7 @@ if uploaded_file is not None:
                 client_min_date_str = client_min_date.strftime('%B %d, %Y')
                 client_max_date_str = client_max_date.strftime('%B %d, %Y')
                 client_date_range = f"{client_min_date_str} - {client_max_date_str}"
-            client_unique_days = group['Date'].dt.date.nunique()
+            # client_unique_days = group['Date'].dt.date.nunique()  # No longer needed for AVG TALKTIME/DAY
             
             environment = ', '.join(group['ENVIRONMENT'].unique())
             unique_collectors = group['Collector'].nunique()
@@ -327,11 +327,18 @@ if uploaded_file is not None:
             avg_agents_per_day = math.ceil(client_summary_subset['COLLECTOR'].mean()) if client_summary_subset['COLLECTOR'].mean() % 1 >= 0.5 else round(client_summary_subset['COLLECTOR'].mean())
             avg_calls_per_day = math.ceil(client_summary_subset['TOTAL CONNECTED'].mean()) if client_summary_subset['TOTAL CONNECTED'].mean() % 1 >= 0.5 else round(client_summary_subset['TOTAL CONNECTED'].mean())
             avg_accounts_per_day = math.ceil(client_summary_subset['TOTAL ACCOUNT'].mean()) if client_summary_subset['TOTAL ACCOUNT'].mean() % 1 >= 0.5 else round(client_summary_subset['TOTAL ACCOUNT'].mean())
-            avg_talktime_seconds = total_talk_time.total_seconds() / client_unique_days
-            avg_hours = int(avg_talktime_seconds // 3600)
-            avg_minutes = int((avg_talktime_seconds % 3600) // 60)
-            avg_seconds = int(avg_talktime_seconds % 60)
-            avg_talktime_str = f"{avg_hours:02d}:{avg_minutes:02d}:{avg_seconds:02d}"
+            
+            # Calculate AVG TALKTIME/DAY as the mean of AVG TALKTIME from summary_table for this client
+            client_avg_talktimes = client_summary_subset['AVG TALKTIME'].apply(str_to_timedelta)
+            avg_talktime_per_day = client_avg_talktimes.mean()
+            if pd.isna(avg_talktime_per_day):  # Handle case where no valid talk times exist
+                avg_talktime_str = "00:00:00"
+            else:
+                avg_t_seconds = int(avg_talktime_per_day.total_seconds())
+                avg_hours = avg_t_seconds // 3600
+                avg_minutes = (avg_t_seconds % 3600) // 60
+                avg_seconds = avg_t_seconds % 60
+                avg_talktime_str = f"{avg_hours:02d}:{avg_minutes:02d}:{avg_seconds:02d}"
             
             client_summary_data.append({
                 'CLIENT': client,
