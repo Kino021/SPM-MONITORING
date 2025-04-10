@@ -120,10 +120,6 @@ with st.sidebar:
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     
-    # Debug: Display column names and sample of Date column
-    st.write("Column names:", df.columns.tolist())
-    st.write("Sample of 'Date' column:", df['Date'].head(10).tolist())
-    
     # Convert date column with error handling (using column name 'Date')
     df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce')
     
